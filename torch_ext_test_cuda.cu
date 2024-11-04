@@ -154,7 +154,7 @@ at::Tensor my_mm_bc(
 
 
     matrixMultiply_broadcast<<<grid, block>>>(
-        a.data_ptr<float>(), b.t().data_ptr<float>(), output.data_ptr<float>(), bias.data_ptr<float>(), M, N, K
+        a.data_ptr<float>(), b.data_ptr<float>(), output.data_ptr<float>(), bias.data_ptr<float>(), M, N, K
     );
     
     return output;
