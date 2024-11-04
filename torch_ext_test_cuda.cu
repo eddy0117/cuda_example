@@ -76,7 +76,7 @@ __global__ void matrixMultiply_broadcast(const float* A, const float* B, float* 
         // }
         float sum = 0;
         for (int i = 0; i < K; ++i) {
-            sum += A[A_row * K + i] * B[i * N + col];
+            sum += A[A_row * K + i] * B[col * N + i];
             // printf("row: %d, col: %d, col[i]: %d, sum: %f\n", A_row, col, i, sum);
         }
         output[A_row * N + col] = sum + bias[col];
@@ -154,7 +154,7 @@ at::Tensor my_mm_bc(
 
 
     matrixMultiply_broadcast<<<grid, block>>>(
-        a.data_ptr<float>(), b.t().contiguous().data_ptr<float>(), output.data_ptr<float>(), bias.data_ptr<float>(), M, N, K
+        a.data_ptr<float>(), b.t().data_ptr<float>(), output.data_ptr<float>(), bias.data_ptr<float>(), M, N, K
     );
     
     return output;
