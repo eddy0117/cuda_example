@@ -4,10 +4,20 @@
             "type": "cppbuild",
             "label": "C/C++: gcc 建置使用中檔案",
             "command": "/usr/local/cuda-12.0/bin/nvcc",
+            
             "args": [
                 "${file}",
                 "-o",
-                "${fileDirname}/${fileBasenameNoExtension}"
+                "${fileDirname}/${fileBasenameNoExtension}",
+                // "-I",
+                // "/home/eddy/miniconda3/envs/sparsedrive/lib/python3.8/site-packages/torch/include",
+                // "-I",
+                // "/home/eddy/miniconda3/envs/sparsedrive/lib/python3.8/site-packages/torch/include",
+                // "-I",
+                // "/home/eddy/miniconda3/envs/sparsedrive/lib/python3.8/site-packages/torch/include/torch/csrc/api/include",
+                // "-I",
+                // "/home/eddy/miniconda3/envs/sparsedrive/include/python3.8"       
+
             ],
             "options": {
                 "cwd": "${fileDirname}"

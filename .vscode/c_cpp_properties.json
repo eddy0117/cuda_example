@@ -1,0 +1,40 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.1/include",
+                "/home/eddy/miniconda3/envs/sparsedrive/lib/python3.8/site-packages/torch/include",
+                "/home/eddy/miniconda3/envs/sparsedrive/lib/python3.8/site-packages/torch/include/torch/csrc/api/include",
+                "/home/eddy/miniconda3/envs/sparsedrive/include/python3.8"
+            ],
+            "intelliSenseMode": "linux-gcc-x64",
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "c17",
+            "cppStandard": "gnu++17"
+        }
+        // {
+        //     "name": "Windows",
+        //     "includePath": [
+        //         "${workspaceFolder}/**",
+        //         "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v11.6/include",
+        //         "D:/Miniconda3/envs/sparsedrive/Lib/site-packages/torch/include/torch/csrc/api/include",
+        //         "D:/Miniconda3/envs/sparsedrive/Lib/site-packages/torch/include",
+        //         "D:/Miniconda3/envs/sparsedrive/include"
+        //     ],
+        //     "defines": [
+        //         "_DEBUG",
+        //         "UNICODE",
+        //         "_UNICODE"
+        //     ],
+        //     "intelliSenseMode": "windows-msvc-x64",
+        //     "compilerPath": "C:/Program Files (x86)/Microsoft Visual Studio/2019/Professional/VC/Tools/MSVC/14.29.30133/bin/Hostx64/x64/cl.exe",
+        //     "cStandard": "c17",
+        //     "cppStandard": "c++17",
+        //     // "compilerPath": "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v11.6/bin/nvcc.exe"
+        // }
+        
+    ],
+    "version": 4
+}

@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <iostream>
 
-// 可以在 kernel 中被存取的靜態變量 __device__
+// 可以在 kernel 中被存取的全局內存靜態變量 __device__
 __device__ float d_x = 8;
 
 __device__ float add(const float a, const float b) {
