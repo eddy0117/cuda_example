@@ -4,7 +4,6 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}/**",
-                "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.1/include",
                 "/home/eddy/miniconda3/envs/sparsedrive/lib/python3.8/site-packages/torch/include",
                 "/home/eddy/miniconda3/envs/sparsedrive/lib/python3.8/site-packages/torch/include/torch/csrc/api/include",
                 "/home/eddy/miniconda3/envs/sparsedrive/include/python3.8"

@@ -68,13 +68,16 @@ __global__ void matrixMultiply(const float* A, const float* B, float* C, int M, 
 __global__ void matrixMultiply_broadcast(const float* A, const float* B, float* output, float* bias, int M, int N, int K) {
     int A_row = blockIdx.y * blockDim.y + threadIdx.y;
     // int B_row = (blockIdx.y * blockDim.y + threadIdx.y) % K;
-
     int col = blockIdx.x * blockDim.x + threadIdx.x;
     // printf("A_row: %d, col: %d\n", A_row, col);
     if (A_row < M && col < N) {
+        // for(int i = 0; i < (N * K); i++) {
+        //     printf("B[%d] = %f\n", i, B[i]);
+        // }
         float sum = 0;
         for (int i = 0; i < K; ++i) {
             sum += A[A_row * K + i] * B[i * N + col];
+            // printf("row: %d, col: %d, col[i]: %d, sum: %f\n", A_row, col, i, sum);
         }
         output[A_row * N + col] = sum + bias[col];
     }
@@ -115,8 +118,9 @@ at::Tensor my_mm_bc(
     const at::Tensor& bias
 ) {
     
+    // auto b_t = b.transpose(0, 1);
     // 檢查 input 的最後一維是否與 weight 的第一維相等
-    if (a.size(-1) != b.size(0)) {
+    if (a.size(-1) != b.size(1)) {
         throw std::invalid_argument("The last dim of input must be equal to the first dim of weight");
     }
 
@@ -131,7 +135,7 @@ at::Tensor my_mm_bc(
 
     int M = n / a.size(-1);
     int K = a.size(-1);
-    int N = b.size(-1);
+    int N = b.size(0);
 
     dim3 block(16, 16);
     dim3 grid((N + block.x - 1) / block.x, (M + block.y - 1) / block.y);
@@ -143,10 +147,14 @@ at::Tensor my_mm_bc(
     
     auto output = torch::zeros(new_sizes, a.options());
     // printf("M: %d, N: %d, K: %d\n", M, N, K);
+    // std::cout << "b\n" << b << std::endl;
+    // std::cout << "b_t\n" << b_t << std::endl;
+
     
 
+
     matrixMultiply_broadcast<<<grid, block>>>(
-        a.data_ptr<float>(), b.data_ptr<float>(), output.data_ptr<float>(), bias.data_ptr<float>(), M, N, K
+        a.data_ptr<float>(), b.t().contiguous().data_ptr<float>(), output.data_ptr<float>(), bias.data_ptr<float>(), M, N, K
     );
     
     return output;
