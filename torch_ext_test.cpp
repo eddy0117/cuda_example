@@ -21,6 +21,12 @@ at::Tensor my_mm_bc(
     const at::Tensor& bias
 );
 
+at::Tensor my_mm_bc_add(
+    const at::Tensor& a,
+    const at::Tensor& b,
+    const at::Tensor& bias
+);
+
 std::vector<at::Tensor> my_mm_qkv(
     const at::Tensor& q,
     const at::Tensor& w_q, 
@@ -62,6 +68,15 @@ at::Tensor my_func_mm_bc(
     return my_mm_bc(a, b, bias);
 }
 
+at::Tensor my_func_mm_bc_add(
+    const at::Tensor& a,
+    const at::Tensor& b,
+    const at::Tensor& bias
+    ) {
+    
+    return my_mm_bc_add(a, b, bias);
+}
+
 std::vector<at::Tensor> my_func_mm_qkv(
     const at::Tensor& q,
     const at::Tensor& w_q, 
@@ -82,4 +97,5 @@ PYBIND11_MODULE(TORCH_EXTENSION_NAME, m) {
     m.def("my_func_mm", &my_func_mm);
     m.def("my_func_mm_bc", &my_func_mm_bc);
     m.def("my_func_mm_qkv", &my_func_mm_qkv);
+    m.def("my_func_mm_bc_add", &my_func_mm_bc_add);
 }

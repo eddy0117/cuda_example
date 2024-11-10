@@ -86,6 +86,29 @@ __global__ void matrixMultiply_broadcast(const float* A, const float* B, float* 
     }
 }
 
+__global__ void matrixMultiply_broadcast_add(const float* A, const float* B, float* output, const float* bias, int M, int N, int K) {
+    int A_row = blockIdx.y * blockDim.y + threadIdx.y;
+    // int B_row = (blockIdx.y * blockDim.y + threadIdx.y) % K;
+    int col = blockIdx.x * blockDim.x + threadIdx.x;
+    // printf("A_row: %d, col: %d\n", A_row, col);
+    if (A_row < M && col < N) {
+        // for(int i = 0; i < (N * K); i++) {
+        //     printf("B[%d] = %f\n", i, B[i]);
+        // }
+        float sum = 0;
+        for (int i = 0; i < K; ++i) {
+            // sum += A[A_row * K + i] * B[i * N + col];
+            if(B[i * N + col] == -1){
+                sum -= A[A_row * K + i];
+            } else {
+                sum += A[A_row * K + i];
+            }
+            // printf("row: %d, col: %d, col[i]: %d, sum: %f\n", A_row, col, i, sum);
+        }
+        output[A_row * N + col] = sum + bias[col];
+    }
+}
+
 __global__ void matrixMultiply_broadcast_qkv(
     const float* q, const float* w_q, const float* b_q, 
     const float* k, const float* w_k, const float* b_k, 
@@ -151,8 +174,8 @@ at::Tensor my_mm(
     auto c = torch::zeros({M, N}, a.options());
 
     // 定義 CUDA block 和 grid 大小
-    dim3 block(16, 16);
-    dim3 grid((N + block.x - 1) / block.x, (M + block.y - 1) / block.y);
+    dim3 block(32, 32);
+    dim3 grid((N + block.x - 1) / block.x + 1, (M + block.y - 1) / block.y + 1);
 
     // 呼叫 CUDA kernel 進行矩陣乘法
     matrixMultiply<<<grid, block>>>(
@@ -219,6 +242,50 @@ at::Tensor my_mm_bc(
     // ========================================
 
     matrixMultiply_broadcast<<<grid, block>>>(
+        a.data_ptr<float>(), b.t().contiguous().data_ptr<float>(), output.data_ptr<float>(), bias.data_ptr<float>(), M, N, K
+    );
+    
+    
+    return output;
+}
+
+at::Tensor my_mm_bc_add(
+    const at::Tensor& a, 
+    const at::Tensor& b,
+    const at::Tensor& bias
+) {
+    
+    // auto b_t = b.transpose(0, 1);
+    // 檢查 input 的最後一維是否與 weight 的第一維相等
+    if (a.size(-1) != b.size(1)) {
+        throw std::invalid_argument("The last dim of input must be equal to the first dim of weight");
+    }
+
+    int n = 1;
+    for(auto s : a.sizes()) {
+        n *= s;
+    }
+    
+    // input 的維度為 [..., K]
+    // 將 input 維度化為 [M, K]
+    // weight 的維度為 [K, N]
+
+    int M = n / a.size(-1);
+    int K = a.size(-1);
+    int N = b.size(0);
+
+    dim3 block(16, 16);
+    dim3 grid((N + block.x - 1) / block.x, (M + block.y - 1) / block.y);
+
+
+    // 輸出維度為 [..., N]
+    auto a_sizes = a.sizes().slice(0, a.sizes().size() - 1);
+    std::vector<int64_t> new_sizes(a_sizes.begin(), a_sizes.end());
+    new_sizes.push_back(N);
+    auto output = torch::zeros(new_sizes, bias.options()); // bias dtype = float
+    // printf("M: %d, N: %d, K: %d\n", M, N, K);
+
+    matrixMultiply_broadcast_add<<<grid, block>>>(
         a.data_ptr<float>(), b.t().contiguous().data_ptr<float>(), output.data_ptr<float>(), bias.data_ptr<float>(), M, N, K
     );
     
