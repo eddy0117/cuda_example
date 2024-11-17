@@ -3,8 +3,6 @@
 
 // #include "cublas_v2.h"
 
-const unsigned int TILE_WIDTH = 32;
-
 __global__ void add(float *a, float *b, float *output, int n) {
     
     const int bid = blockIdx.z * gridDim.y * gridDim.x + blockIdx.y * gridDim.x + blockIdx.x;
@@ -86,28 +84,76 @@ __global__ void matrixMultiply_broadcast(const float* A, const float* B, float* 
     }
 }
 
-__global__ void matrixMultiply_broadcast_add(const float* A, const float* B, float* output, const float* bias, int M, int N, int K) {
+// __global__ void matrixMultiply_broadcast_add(const float* A, const float* B, float* output, const float* bias, int M, int N, int K) {
+//     int A_row = blockIdx.y * blockDim.y + threadIdx.y;
+//     int col = blockIdx.x * blockDim.x + threadIdx.x;
+
+//     if (A_row < M && col < N) {
+//         float sum = 0;
+//         for (int i = 0; i < K; ++i) {
+//             sum += (B[i * N + col] > 0 ? A[A_row * K + i] : -A[A_row * K + i]);
+//         }
+//         output[A_row * N + col] = sum + bias[col];
+//     }
+// }
+
+#define TILE_SIZE 16
+
+__global__ void matrixMultiply_broadcast_add(
+    const float* A, 
+    const float* B, 
+    float* output, 
+    const float* bias,
+    int M, 
+    int N, 
+    int K
+) {
+    __shared__ float As[TILE_SIZE][TILE_SIZE];
+    __shared__ float Bs[TILE_SIZE][TILE_SIZE];
+    
     int A_row = blockIdx.y * blockDim.y + threadIdx.y;
-    // int B_row = (blockIdx.y * blockDim.y + threadIdx.y) % K;
     int col = blockIdx.x * blockDim.x + threadIdx.x;
-    // printf("A_row: %d, col: %d\n", A_row, col);
-    if (A_row < M && col < N) {
-        // for(int i = 0; i < (N * K); i++) {
-        //     printf("B[%d] = %f\n", i, B[i]);
-        // }
-        float sum = 0;
-        for (int i = 0; i < K; ++i) {
-            // sum += A[A_row * K + i] * B[i * N + col];
-            if(B[i * N + col] == -1){
-                sum -= A[A_row * K + i];
-            } else {
-                sum += A[A_row * K + i];
-            }
-            // printf("row: %d, col: %d, col[i]: %d, sum: %f\n", A_row, col, i, sum);
+    
+    float sum = 0.0f;
+    
+    // 計算需要處理的 tile 數量
+    int numTiles = (K + TILE_SIZE - 1) / TILE_SIZE;
+    
+    for (int tile = 0; tile < numTiles; tile++) {
+        // 載入 A 和 B 矩陣的 tile 到共享記憶體
+        int tileIdx = tile * TILE_SIZE;
+        
+        if (A_row < M && threadIdx.x < TILE_SIZE && (tileIdx + threadIdx.x) < K) {
+            As[threadIdx.y][threadIdx.x] = A[A_row * K + tileIdx + threadIdx.x];
+        } else {
+            As[threadIdx.y][threadIdx.x] = 0.0f;
         }
+        
+        if (col < N && threadIdx.y < TILE_SIZE && (tileIdx + threadIdx.y) < K) {
+            Bs[threadIdx.y][threadIdx.x] = B[(tileIdx + threadIdx.y) * N + col];
+        } else {
+            Bs[threadIdx.y][threadIdx.x] = 0.0f;
+        }
+        
+        __syncthreads();
+        
+        // 計算當前 tile 的部分和
+        #pragma unroll
+        for (int k = 0; k < TILE_SIZE; k++) {
+            sum += (Bs[k][threadIdx.x] > 0 ? 
+                   As[threadIdx.y][k] : 
+                   -As[threadIdx.y][k]);
+        }
+        
+        __syncthreads();
+    }
+    
+    // 寫入最終結果
+    if (A_row < M && col < N) {
         output[A_row * N + col] = sum + bias[col];
     }
 }
+
 
 __global__ void matrixMultiply_broadcast_qkv(
     const float* q, const float* w_q, const float* b_q, 
