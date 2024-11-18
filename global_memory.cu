@@ -9,7 +9,6 @@ __device__ float add(const float a, const float b) {
 }
 
 __global__ void hello_from_gpu(float *a, float *b, float *c) {
-    
     const int bid = blockIdx.z * gridDim.y * gridDim.x + blockIdx.y * gridDim.x + blockIdx.x;
     const int tid = threadIdx.z * blockDim.y * blockDim.x + threadIdx.y * blockDim.x + threadIdx.x;
 

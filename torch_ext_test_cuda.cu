@@ -115,7 +115,7 @@ __global__ void matrixMultiply_broadcast_add(
     int col = blockIdx.x * blockDim.x + threadIdx.x;
     
     float sum = 0.0f;
-    
+
     // 計算需要處理的 tile 數量
     int numTiles = (K + TILE_SIZE - 1) / TILE_SIZE;
     
@@ -140,9 +140,7 @@ __global__ void matrixMultiply_broadcast_add(
         // 計算當前 tile 的部分和
         #pragma unroll
         for (int k = 0; k < TILE_SIZE; k++) {
-            sum += (Bs[k][threadIdx.x] > 0 ? 
-                   As[threadIdx.y][k] : 
-                   -As[threadIdx.y][k]);
+            sum += As[threadIdx.y][k] * Bs[k][threadIdx.x];
         }
         
         __syncthreads();
@@ -320,8 +318,8 @@ at::Tensor my_mm_bc_add(
     int K = a.size(-1);
     int N = b.size(0);
 
-    dim3 block(16, 16);
-    dim3 grid((N + block.x - 1) / block.x, (M + block.y - 1) / block.y);
+    dim3 block(TILE_SIZE, TILE_SIZE);
+    dim3 grid((N + TILE_SIZE - 1) / TILE_SIZE, (M + TILE_SIZE - 1) / TILE_SIZE);
 
 
     // 輸出維度為 [..., N]
