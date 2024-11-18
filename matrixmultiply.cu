@@ -116,7 +116,7 @@ __global__ void tiled_mat_mul_kernel(float* A, float* B, float* C, float* bias, 
       C[i*N3+j] = value + bias[j];
 }
 
-__global__ void matrixMultiply_broadcast_add(
+__global__ void matrixMultiply_broadcast(
     const float* __restrict__ A, 
     const float* __restrict__ B, 
     float* __restrict__ output, 
@@ -182,7 +182,7 @@ __global__ void matrixMultiply(const float* A, const float* B, float* C, const f
     }
 }
 
-__global__ void matrixMultiply_broadcast_add_bin(const float* A, const float* B, float* output, const float* bias, int M, int N, int K) {
+__global__ void matrixMultiply_broadcast_add(const float* A, const float* B, float* output, const float* bias, int M, int N, int K) {
     int A_row = blockIdx.y * blockDim.y + threadIdx.y;
     int col = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -272,12 +272,12 @@ public:
             // h_A[i] = i;
         }
         for (int i = 0; i < K * N; i++) {
-            h_B[i] = static_cast<float>(rand()) / RAND_MAX;
-            // if (i % 2 == 0) {
-            //     h_B[i] = 1;
-            // } else {
-            //     h_B[i] = -1;
-            // }
+            // h_B[i] = static_cast<float>(rand()) / RAND_MAX;
+            if (i % 2 == 0) {
+                h_B[i] = 1;
+            } else {
+                h_B[i] = -1;
+            }
             
         }
         // 初始化偏置
@@ -304,13 +304,13 @@ public:
 
         // 啟動核心
         
-        // matrixMultiply_broadcast_add<<<grid, block>>>(d_A, d_B, d_C, d_bias, M, N, K);
+        matrixMultiply_broadcast<<<grid, block>>>(d_A, d_B, d_C2, d_bias, M, N, K);
         // optimized_tiled_matmul<<<grid, block>>>(d_A, d_B, d_C, d_bias, M, K, N);
         // tiled_mat_mul_kernel<<<grid, block>>>(d_A, d_B, d_C, d_bias, M, N, K);
-        // matrixMultiply_broadcast_add_bin<<<grid, block>>>(d_A, d_B, d_C, d_bias, M, N, K);
+        matrixMultiply_broadcast_add<<<grid, block>>>(d_A, d_B, d_C, d_bias, M, N, K);
         // reset d_C
         // CHECK_CUDA_ERROR(cudaMemset(d_C, 0, M * N * sizeof(float)));
-        matrixMultiply<<<grid, block>>>(d_A, d_B, d_C, d_bias, M, N, K);
+        // matrixMultiply<<<grid, block>>>(d_A, d_B, d_C, d_bias, M, N, K);
         CHECK_CUDA_ERROR(cudaGetLastError());
         CHECK_CUDA_ERROR(cudaDeviceSynchronize());
 
